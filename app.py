@@ -1,8 +1,16 @@
 import json
+import numpy as np
 import mysql.connector
 from flask import Flask
+from flask import request
+from keras.applications.vgg16 import VGG16
+from keras.preprocessing.image import load_img
+from keras.preprocessing.image import img_to_array
+from keras.applications.vgg16 import preprocess_input
+from keras.applications.vgg16 import decode_predictions
 
 app = Flask(__name__)
+model = VGG16()
 
 @app.route('/')
 def hello_world():
