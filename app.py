@@ -1,5 +1,5 @@
-import mysql.connector
 import json
+import mysql.connector
 from flask import Flask
 
 app = Flask(__name__)
@@ -7,6 +7,10 @@ app = Flask(__name__)
 @app.route('/')
 def hello_world():
   return 'Hello, Docker!'
+  
+@app.route('/health')
+def health():
+  return "OK", 200
 
 @app.route('/widgets')
 def get_widgets() :
