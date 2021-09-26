@@ -23,6 +23,7 @@ MarkupSafe==2.0.1
 mysql-connector-python==8.0.26
 numpy==1.19.5
 oauthlib==3.1.1
+pillow
 opt-einsum==3.3.0
 protobuf==3.18.0
 pyasn1==0.4.8
