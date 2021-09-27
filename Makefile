@@ -20,3 +20,5 @@ destroy: clean
 	docker volume rm -f mysql_config
 	docker volume rm -f python-docker-tutorial_mysql
 	docker volume rm -f python-docker-tutorial_mysql_config
+	rm -rf images
+	mkdir images

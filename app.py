@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 import mysql.connector
@@ -127,6 +128,8 @@ def get_classifications() :
 @app.route('/resetdb')
 def db_init():
   initializeDB()
+  os.system('rm -rf images')
+  os.system('mkdir images')
   return 'reset database'
 
 
