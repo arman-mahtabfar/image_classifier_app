@@ -13,6 +13,36 @@ from keras.applications.vgg16 import decode_predictions
 app = Flask(__name__)
 model = VGG16()
 
+def initializeDB():
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="password1"
+  )
+  cursor = mydb.cursor()
+
+  cursor.execute("DROP DATABASE IF EXISTS classification")
+  cursor.execute("CREATE DATABASE classification")
+  cursor.close()
+
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="password1",
+    database="classification"
+  )
+  cursor = mydb.cursor()
+
+  cursor.execute("DROP TABLE IF EXISTS classifier")
+  cursor.execute("CREATE TABLE classifier (imageName VARCHAR(255), output VARCHAR(255))")
+  cursor.close()
+
+  return 'initialized db'
+
+
+initializeDB()
+
+
 @app.route('/')
 def hello_world():
   return 'Hello, Docker!'
@@ -21,22 +51,15 @@ def hello_world():
 def health():
   return "OK", 200
 
-@app.route('/test', methods = ['GET'])
+@app.route('/test-model', methods = ['GET'])
 def testin():
     image = load_img('test.jpg', target_size=(224, 224))
-    # convert image pixels to a numpy array
     image = img_to_array(image)
-    # reshape data for the model
     image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
-    # prepare the image for the VGG model
     image = preprocess_input(image)
-    # predict the probability across all output classes
     yhat = model.predict(image)
-    # convert the probabilities to class labels
     label = decode_predictions(yhat)
-    # retrieve the most likely result, e.g. highest probability
     label = label[0][0]
-    # print the classification
     print('%s (%.2f%%)' % (label[1], label[2]*100))
     return '%s (%.2f%%)' % (label[1], label[2]*100)
 
@@ -44,32 +67,51 @@ def testin():
 @app.route('/classify', methods = ['POST'])
 def classify():
 
-    # get image from post request
-    # use the image as a parameter to call the ai classifier
-    # store the image and its description given from the classifier together in mysql db
     file = request.files['image']
     imageName = request.form['name']
     # Read the image via file.stream
     img = Image.open(file.stream)
+    
+    filePath = 'images/' + imageName
+    img.save(filePath, format='jpeg')
 
-    filepath = '/images/' + imageName + ".jpg"
-    #file.save(filepath)
+    # predict image classification using model
+    image = load_img(filePath, target_size=(224, 224))
+    image = img_to_array(image)
+    image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+    image = preprocess_input(image)
+    yhat = model.predict(image)
+    label = decode_predictions(yhat)
+    label = label[0][0]
 
-    return jsonify({'msg': 'success', 'size': [img.width, img.height], 'name': imageName})
+    mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="password1",
+    database="classification"
+    )
+    cursor = mydb.cursor()
 
 
-@app.route('/widgets')
-def get_widgets() :
+    cursor.execute("INSERT INTO classifier (imageName, output) VALUES ('" + imageName + "','" + label[1] + "')")
+    mydb.commit()
+    cursor.close()
+    
+    return jsonify({'msg': 'success', 'size': [img.width, img.height], 'image': imageName, 'classification': label[1]})
+
+
+@app.route('/list-classifications', methods = ['GET'])
+def get_classifications() :
   mydb = mysql.connector.connect(
     host="mysqldb",
     user="root",
     password="password1",
-    database="inventory"
+    database="classification"
   )
   cursor = mydb.cursor()
 
 
-  cursor.execute("SELECT * FROM widgets")
+  cursor.execute("SELECT * FROM classifier")
 
   row_headers=[x[0] for x in cursor.description] #this will extract row headers
 
@@ -82,32 +124,10 @@ def get_widgets() :
 
   return json.dumps(json_data)
 
-@app.route('/initdb')
+@app.route('/resetdb')
 def db_init():
-  mydb = mysql.connector.connect(
-    host="mysqldb",
-    user="root",
-    password="password1"
-  )
-  cursor = mydb.cursor()
-
-  cursor.execute("DROP DATABASE IF EXISTS inventory")
-  cursor.execute("CREATE DATABASE inventory")
-  cursor.close()
-
-  mydb = mysql.connector.connect(
-    host="mysqldb",
-    user="root",
-    password="password1",
-    database="inventory"
-  )
-  cursor = mydb.cursor()
-
-  cursor.execute("DROP TABLE IF EXISTS widgets")
-  cursor.execute("CREATE TABLE widgets (name VARCHAR(255), description VARCHAR(255))")
-  cursor.close()
-
-  return 'init database'
+  initializeDB()
+  return 'reset database'
 
 
 if __name__ == "__main__":
