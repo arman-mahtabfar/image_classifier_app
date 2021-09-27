@@ -2,7 +2,8 @@ import json
 import numpy as np
 import mysql.connector
 from flask import Flask
-from flask import request
+from PIL import Image
+from flask import request, jsonify
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing.image import load_img
 from keras.preprocessing.image import img_to_array
@@ -22,8 +23,8 @@ def health():
 
 @app.route('/test', methods = ['GET'])
 def testin():
-    image = load_img('woman.jpg', target_size=(224, 224))
-    # convert the image pixels to a numpy array
+    image = load_img('test.jpg', target_size=(224, 224))
+    # convert image pixels to a numpy array
     image = img_to_array(image)
     # reshape data for the model
     image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
@@ -40,35 +41,21 @@ def testin():
     return '%s (%.2f%%)' % (label[1], label[2]*100)
 
 
-
 @app.route('/classify', methods = ['POST'])
 def classify():
 
-    # TODO
     # get image from post request
     # use the image as a parameter to call the ai classifier
     # store the image and its description given from the classifier together in mysql db
-    
-    data = request.json
-    image = np.array(data['image']) #this is the image in numpy array RGB format
-    
-    #use the model to predict what the fuck the image is...
-    image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+    file = request.files['image']
+    imageName = request.form['name']
+    # Read the image via file.stream
+    img = Image.open(file.stream)
 
-    image = preprocess_input(image)
-    yhat = model.predict(image)
-    
-    label = decode_predictions(yhat)
-    label = label[0][0]
-    
-    #this is the classification!
-    print('%s (%.2f%%)' % (label[1], label[2]*100))
-    
-    #insert this classification into MySQL
-    queryMySQL(f"""INSERT INTO image (img_data, description) VALUES ({img_byes}, "{img_description}")""")
-    
-    return 'success'
+    filepath = '/images/' + imageName + ".jpg"
+    #file.save(filepath)
 
+    return jsonify({'msg': 'success', 'size': [img.width, img.height], 'name': imageName})
 
 
 @app.route('/widgets')
@@ -76,7 +63,7 @@ def get_widgets() :
   mydb = mysql.connector.connect(
     host="mysqldb",
     user="root",
-    password="p@ssw0rd1",
+    password="password1",
     database="inventory"
   )
   cursor = mydb.cursor()
@@ -100,7 +87,7 @@ def db_init():
   mydb = mysql.connector.connect(
     host="mysqldb",
     user="root",
-    password="p@ssw0rd1"
+    password="password1"
   )
   cursor = mydb.cursor()
 
@@ -111,7 +98,7 @@ def db_init():
   mydb = mysql.connector.connect(
     host="mysqldb",
     user="root",
-    password="p@ssw0rd1",
+    password="password1",
     database="inventory"
   )
   cursor = mydb.cursor()
@@ -122,5 +109,6 @@ def db_init():
 
   return 'init database'
 
+
 if __name__ == "__main__":
-  app.run(host ='0.0.0.0')
+  app.run()
