@@ -85,6 +85,7 @@ def classify():
     label = decode_predictions(yhat)
     label = label[0][0]
 
+    # add image name and classification into 'classifier' table in mysql
     mydb = mysql.connector.connect(
     host="mysqldb",
     user="root",
@@ -101,6 +102,15 @@ def classify():
     return jsonify({'msg': 'success', 'size': [img.width, img.height], 'image': imageName, 'classification': label[1]})
 
 
+@app.route('/search', methods = ['GET'])
+def search():
+  # TODO
+  # make sure to Recieve keyword from request
+  # use keyword to search classifications in database
+  # return all images given classifications that match keyword
+      # use the imageName from the mysql table column to search in the filesystems /images directory
+  return 'success!'
+
 @app.route('/list-classifications', methods = ['GET'])
 def get_classifications() :
   mydb = mysql.connector.connect(
@@ -114,7 +124,7 @@ def get_classifications() :
 
   cursor.execute("SELECT * FROM classifier")
 
-  row_headers=[x[0] for x in cursor.description] #this will extract row headers
+  row_headers=[x[0] for x in cursor.description]
 
   results = cursor.fetchall()
   json_data=[]
